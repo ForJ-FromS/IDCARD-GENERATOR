@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Character ID Card Maker</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070a0f;
+      --ink: #f3f8fb;
+      --muted: #94a5b1;
+      --cyan: #66d9ff;
+      --amber: #d8bd78;
+      --red: #ff8b94;
+      --card: #0d1822;
+      --card-2: #111f2c;
+      --line: rgba(143, 207, 237, .24);
+      --line-strong: rgba(143, 207, 237, .48);
+      --radius: 8px;
+      font-family: Inter, Pretendard, "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(102, 217, 255, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(102, 217, 255, .035) 1px, transparent 1px),
+        radial-gradient(circle at 12% 18%, rgba(102, 217, 255, .18), transparent 26rem),
+        radial-gradient(circle at 88% 82%, rgba(216, 189, 120, .12), transparent 25rem),
+        #060910;
+      background-size: 36px 36px, 36px 36px, auto, auto, auto;
+    }
+
+    button, input, textarea, select { font: inherit; }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      min-height: 40px;
+      padding: 0 12px;
+      color: var(--ink);
+      background: #122333;
+      font-weight: 850;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: var(--line-strong);
+      background: #183149;
+    }
+
+    button.primary {
+      background: #1a627c;
+      border-color: rgba(102, 217, 255, .5);
+    }
+
+    button.danger { color: var(--red); }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+    }
+
+    .app {
+      width: min(1660px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 18px 0;
+      display: grid;
+      grid-template-columns: minmax(330px, 420px) minmax(660px, 1fr);
+      gap: 20px;
+    }
+
+    .editor {
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      padding-right: 20px;
+      border-right: 1px solid rgba(143, 207, 237, .14);
+      scrollbar-color: rgba(102, 217, 255, .34) transparent;
+    }
+
+    .brand {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .brand span {
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .16em;
+    }
+
+    .group {
+      margin: 0 0 14px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(12, 24, 34, .84);
+    }
+
+    .group h2 {
+      margin: 0 0 12px;
+      color: var(--cyan);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stack { display: grid; gap: 10px; }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.25;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #070f18;
+      outline: 0;
+    }
+
+    input[type="range"] {
+      accent-color: var(--cyan);
+      padding: 0;
+      min-height: 32px;
+    }
+
+    textarea {
+      min-height: 78px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(102, 217, 255, .12);
+    }
+
+    .actions {
+      position: sticky;
+      bottom: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 12px 0 2px;
+      background: linear-gradient(transparent, var(--bg) 24%);
+    }
+
+    .actions .wide { grid-column: 1 / -1; }
+
+    .stage {
+      min-width: 0;
+      display: grid;
+      place-items: center;
+      overflow: auto;
+      padding: 10px;
+    }
+
+    .preview-shell {
+      width: min(100%, 1280px);
+      min-width: 660px;
+    }
+
+    .preview-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 0 2px 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    svg#cardPreview {
+      display: block;
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 20px 45px rgba(0, 0, 0, .42));
+    }
+
+    .note {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        display: block;
+        width: min(100vw - 20px, 760px);
+      }
+
+      .editor {
+        max-height: none;
+        padding-right: 0;
+        border-right: 0;
+      }
+
+      .stage { padding: 14px 0; }
+      .preview-shell { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="editor" aria-label="ID 카드 편집">
+      <div class="brand">
+        <div>
+          <span>PERSONNEL FILE</span>
+          <h1>Character ID Maker</h1>
+        </div>
+        <button id="resetBtn" class="danger" type="button" title="기본값으로 되돌리기">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+        </button>
+      </div>
+
+      <form id="cardForm" class="stack">
+        <section class="group">
+          <h2>Header</h2>
+          <div class="grid-2">
+            <label>기관 / 부대명
+              <input name="agency" value="FEARLESS HQ">
+            </label>
+            <label>카드 번호
+              <input name="serial" value="FHQ-07-0427">
+            </label>
+          </div>
+        </section>
+
+        <section class="group">
+          <h2>Identity</h2>
+          <div class="stack">
+            <label>이름
+              <input name="name" value="YOON SEOL A">
+            </label>
+            <label>코드네임
+              <input name="codename" value="SERENITY">
+            </label>
+          </div>
+          <div class="grid-2" style="margin-top:10px">
+            <label>분류
+              <input name="classType" value="A-Class Guide">
+            </label>
+            <label>Position / Role
+              <input name="role" value="Tactical Liaison">
+            </label>
+            <label>Paired With
+              <input name="pairedWith" value="JESTE">
+            </label>
+          </div>
+        </section>
+
+        <section class="group">
+          <h2>Photo</h2>
+          <label>증명사진
+            <input id="portraitInput" type="file" accept="image/*">
+          </label>
+          <label style="margin-top:10px">이미지 표시 방식
+            <select name="photoFit">
+              <option value="meet" selected>전체 보이기</option>
+              <option value="slice">프레임 채우기</option>
+            </select>
+          </label>
+          <div class="grid-2" style="margin-top:10px">
+            <label>좌우 위치
+              <input name="photoX" type="range" min="-160" max="160" value="0">
+            </label>
+            <label>상하 위치
+              <input name="photoY" type="range" min="-160" max="160" value="0">
+            </label>
+          </div>
+          <label style="margin-top:10px">줌
+            <input name="photoZoom" type="range" min="100" max="240" value="125">
+          </label>
+          <p class="note">업로드한 이미지는 브라우저 안에서만 사용돼. PNG/HTML 저장 시 카드 안에 같이 들어가.</p>
+        </section>
+
+        <section class="group">
+          <h2>Assignment</h2>
+          <div class="grid-2">
+            <label>소속
+              <input name="division" value="7TH MARIN FLEET">
+            </label>
+            <label>Guiding / Combat 선택
+              <select name="systemType">
+                <option value="GUIDING SYSTEM" selected>GUIDING SYSTEM</option>
+                <option value="COMBAT SYSTEM">COMBAT SYSTEM</option>
+              </select>
+            </label>
+            <label>System Detail
+              <input name="systemDetail" value="Calm Anchor · Resonance Control">
+            </label>
+            <label>Partner Sync
+              <input name="sync" value="92%">
+            </label>
+          </div>
+        </section>
+
+        <section class="group">
+          <h2>Record</h2>
+          <div class="grid-2">
+            <label>발급일
+              <input name="issued" value="2026.04.27">
+            </label>
+            <label>만료일
+              <input name="expires" value="PERMANENT">
+            </label>
+            <label>안정도
+              <input name="stability" value="A+">
+            </label>
+            <label>서명
+              <input name="signature" value="Serenity">
+            </label>
+          </div>
+        </section>
+      </form>
+
+      <div class="actions">
+        <button id="pngBtn" class="primary" type="button">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+          PNG 저장
+        </button>
+        <button id="htmlBtn" type="button">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M10 13l-2 2 2 2"/><path d="M14 17l2-2-2-2"/></svg>
+          HTML 저장
+        </button>
+        <button id="svgBtn" class="wide" type="button">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 13h8"/><path d="M8 17h5"/><path d="M8 7h8"/></svg>
+          SVG 저장
+        </button>
+      </div>
+    </section>
+
+    <section class="stage" aria-label="카드 미리보기">
+      <div class="preview-shell">
+        <div class="preview-top">
+          <span>LIVE ID PREVIEW · 1600×1000</span>
+          <span>증명사진형 캐릭터 신분증</span>
+        </div>
+        <svg id="cardPreview" viewBox="0 0 1600 1000" role="img" aria-label="캐릭터 ID 카드 미리보기"></svg>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const XLINK_NS = "http://www.w3.org/1999/xlink";
+    const form = document.querySelector("#cardForm");
+    const svg = document.querySelector("#cardPreview");
+    const defaults = Object.fromEntries(new FormData(form).entries());
+    const state = { portrait: "" };
+
+    function value(name) {
+      return new FormData(form).get(name) || "";
+    }
+
+    function el(tag, attrs = {}, children = []) {
+      const node = document.createElementNS(SVG_NS, tag);
+      Object.entries(attrs).forEach(([key, attrValue]) => {
+        if (key === "href") node.setAttributeNS(XLINK_NS, "href", attrValue);
+        else node.setAttribute(key, attrValue);
+      });
+      children.forEach(child => node.append(child));
+      return node;
+    }
+
+    function txt(content) {
+      return document.createTextNode(content);
+    }
+
+    function text(x, y, content, attrs = {}) {
+      return el("text", { x, y, ...attrs }, [txt(content)]);
+    }
+
+    function rect(x, y, width, height, attrs = {}) {
+      return el("rect", { x, y, width, height, ...attrs });
+    }
+
+    function line(x1, y1, x2, y2, attrs = {}) {
+      return el("line", { x1, y1, x2, y2, ...attrs });
+    }
+
+    function wrap(content, x, y, width, lineHeight, attrs = {}, maxLines = 3) {
+      const node = el("text", { x, y, ...attrs });
+      const size = Number(attrs["font-size"] || 22);
+      const lines = [];
+      String(content).split(/\n/).forEach(raw => {
+        let current = "";
+        raw.split(/\s+/).forEach(word => {
+          const next = current ? `${current} ${word}` : word;
+          if (next.length * size * .54 > width && current) {
+            lines.push(current);
+            current = word;
+          } else {
+            current = next;
+          }
+        });
+        if (current) lines.push(current);
+      });
+      lines.slice(0, maxLines).forEach((lineText, index) => {
+        node.append(el("tspan", { x, dy: index === 0 ? 0 : lineHeight }, [txt(lineText)]));
+      });
+      return node;
+    }
+
+    function labelValue(x, y, label, body, width = 230) {
+      const group = el("g");
+      group.append(text(x, y, label.toUpperCase(), { fill: "#66d9ff", "font-size": 15, "font-weight": 950, "letter-spacing": 3 }));
+      group.append(wrap(body, x, y + 36, width, 25, { fill: "#f5fbff", "font-size": 21, "font-weight": 850 }, 1));
+      group.append(line(x, y + 62, x + width, y + 62, { stroke: "rgba(143,207,237,.18)" }));
+      return group;
+    }
+
+    function metric(x, y, label, body, accent = "#66d9ff") {
+      const group = el("g");
+      group.append(rect(x, y, 188, 78, { rx: 7, fill: "rgba(9,20,30,.84)", stroke: "rgba(143,207,237,.22)" }));
+      group.append(text(x + 16, y + 28, label.toUpperCase(), { fill: accent, "font-size": 14, "font-weight": 950, "letter-spacing": 2.5 }));
+      group.append(wrap(body, x + 16, y + 60, 154, 24, { fill: "#f8fbff", "font-size": 23, "font-weight": 950 }, 1));
+      return group;
+    }
+
+    function barcode(x, y, height = 56, scale = 1) {
+      const group = el("g");
+      const bars = [7, 3, 11, 5, 4, 12, 6, 8, 3, 10, 5, 13, 4, 6, 9, 3, 12, 5, 7, 4, 10, 6, 3, 11];
+      let cursor = x;
+      bars.forEach((bar, i) => {
+        const width = bar * scale;
+        if (i % 2 === 0) group.append(rect(cursor, y, width, height, { fill: "rgba(244,248,251,.76)" }));
+        cursor += width;
+      });
+      return group;
+    }
+
+    function qr(x, y, size) {
+      const group = el("g");
+      group.append(rect(x, y, size, size, { fill: "#f5f8fb" }));
+      const cells = [
+        [0,0],[1,0],[2,0],[4,0],[6,0],[7,0],[8,0],
+        [0,1],[2,1],[3,1],[5,1],[6,1],[8,1],
+        [0,2],[1,2],[2,2],[5,2],[8,2],
+        [3,3],[4,3],[6,3],[7,3],
+        [0,4],[2,4],[4,4],[5,4],[8,4],
+        [1,5],[3,5],[6,5],[7,5],
+        [0,6],[2,6],[3,6],[5,6],[8,6],
+        [0,7],[4,7],[6,7],[8,7],
+        [0,8],[1,8],[2,8],[4,8],[5,8],[7,8]
+      ];
+      const unit = size / 9;
+      cells.forEach(([cx, cy]) => group.append(rect(x + cx * unit, y + cy * unit, unit, unit, { fill: "#08111b" })));
+      return group;
+    }
+
+    function logoPath(d, attrs = {}) {
+      return el("path", { d, fill: "none", stroke: "#d8bd78", "stroke-width": 6, "stroke-linecap": "round", "stroke-linejoin": "round", ...attrs });
+    }
+
+    function logoCircle(attrs = {}) {
+      return el("circle", { fill: "none", stroke: "#d8bd78", "stroke-width": 6, ...attrs });
+    }
+
+    function logoFill(d, attrs = {}) {
+      return el("path", { d, fill: "rgba(216,189,120,.16)", stroke: "#d8bd78", "stroke-width": 5, "stroke-linejoin": "round", ...attrs });
+    }
+
+    function branchLogo(kind, cx, cy, scale = 1) {
+      const root = el("g", { transform: `translate(${cx} ${cy}) scale(${scale})` });
+      if (kind === "marine") {
+        root.append(logoPath("M-26-64A74 74 0 0 0-72 6"));
+        root.append(logoPath("M-72 18A74 74 0 0 0-18 70"));
+        root.append(logoPath("M26-64A74 74 0 0 1 72 6"));
+        root.append(logoPath("M72 18A74 74 0 0 1 18 70"));
+        root.append(logoCircle({ cy: -70, r: 17 }));
+        root.append(logoPath("M0-50V66"));
+        root.append(logoPath("M-42-26H42"));
+        root.append(logoPath("M-51 13A52 52 0 0 0-13 50"));
+        root.append(logoPath("M51 13A52 52 0 0 1 13 50"));
+      } else if (kind === "sniper") {
+        root.append(logoCircle({ r: 64 }));
+        root.append(logoCircle({ r: 36, opacity: .55 }));
+        root.append(logoPath("M-82 0H-44M44 0H82M0-82V-44M0 44V82"));
+        root.append(logoCircle({ r: 15 }));
+      } else if (kind === "bombard") {
+        root.append(logoFill("M0-4L-28 26L-78-18L-118-56L-72-38L-46-8L-18 8Z"));
+        root.append(logoFill("M0-4L28 26L78-18L118-56L72-38L46-8L18 8Z"));
+        root.append(logoPath("M-86-12L-52 20M86-12L52 20"));
+        root.append(logoPath("M-70 24L-30 56M70 24L30 56"));
+        root.append(logoFill("M0-48L20-8L0 92L-20-8Z"));
+        root.append(logoPath("M-18-8H18"));
+        root.append(logoPath("M0-88L7-68L28-62L7-56L0-36L-7-56L-28-62L-7-68"));
+        root.append(logoPath("M-92 60L-86 76L-70 82L-86 88L-92 104L-98 88L-114 82L-98 76", { "stroke-width": 3.2 }));
+        root.append(logoPath("M92 60L98 76L114 82L98 88L92 104L86 88L70 82L86 76", { "stroke-width": 3.2 }));
+      } else if (kind === "infiltration") {
+        const mark = el("g", { transform: "scale(.82 1)" });
+        mark.append(logoPath("M-90-36H-42L0 4L42-36H90"));
+        mark.append(logoPath("M-76-16H-34L0 16L34-16H76"));
+        mark.append(logoPath("M-58 4H-24L0 28L24 4H58"));
+        mark.append(logoPath("M-34 26L0 60L34 26"));
+        mark.append(logoPath("M-18-36H18"));
+        root.append(mark);
+      } else if (kind === "assassin") {
+        const left = el("g", { transform: "rotate(-42)" });
+        left.append(logoFill("M-8-80H8L14 42L0 104L-14 42Z"));
+        left.append(logoPath("M-24-22H24"));
+        left.append(logoPath("M-18-58H18"));
+        left.append(logoCircle({ cx: 0, cy: -100, r: 16 }));
+        left.append(logoPath("M-18-86H18"));
+        const right = el("g", { transform: "rotate(42)" });
+        right.append(logoFill("M-8-80H8L14 42L0 104L-14 42Z"));
+        right.append(logoPath("M-24-22H24"));
+        right.append(logoPath("M-18-58H18"));
+        right.append(logoCircle({ cx: 0, cy: -100, r: 16 }));
+        right.append(logoPath("M-18-86H18"));
+        root.append(left, right);
+      } else {
+        root.append(logoCircle({ r: 58 }));
+        root.append(logoPath("M-70 0H70M0-70V70"));
+        root.append(logoFill("M-48 42V-10H-22V42M-12 42V-48H12V42M22 42V-24H48V42Z"));
+        root.append(logoPath("M-34-60A74 74 0 0 1 34-60"));
+      }
+      return root;
+    }
+
+    function branchLogoLayout(kind) {
+      return {
+        seoul: { scale: 1.28, dx: 0, dy: 30 },
+        marine: { scale: 1.05, dx: 0, dy: 30 },
+        sniper: { scale: 1.05, dx: 0, dy: 30 },
+        bombard: { scale: .88, dx: 0, dy: 32 },
+        infiltration: { scale: 1.18, dx: 0, dy: 30 },
+        assassin: { scale: .88, dx: 0, dy: 28 }
+      }[kind] || { scale: 1, dx: 0, dy: 0 };
+    }
+
+    function portrait(x, y, width, height) {
+      const group = el("g");
+      group.append(rect(x, y, width, height, { rx: 10, fill: "#132839", stroke: "rgba(216,189,120,.5)", "stroke-width": 2 }));
+      if (state.portrait) {
+        const zoom = Number(value("photoZoom") || 125) / 100;
+        const photoWidth = width * zoom;
+        const photoHeight = height * zoom;
+        const photoX = x - (photoWidth - width) / 2 + Number(value("photoX") || 0);
+        const photoY = y - (photoHeight - height) / 2 + Number(value("photoY") || 0);
+        const fitMode = value("photoFit") === "slice" ? "slice" : "meet";
+        group.append(el("image", { x: photoX, y: photoY, width: photoWidth, height: photoHeight, href: state.portrait, preserveAspectRatio: `xMidYMid ${fitMode}`, "clip-path": "url(#portraitClip)" }));
+      } else {
+        group.append(rect(x + 24, y + 24, width - 48, height - 48, { rx: 7, fill: "rgba(102,217,255,.08)", stroke: "rgba(255,255,255,.22)", "stroke-dasharray": "9 9" }));
+        group.append(text(x + width / 2, y + height / 2, "PHOTO", { fill: "rgba(245,251,255,.72)", "font-size": 28, "font-weight": 950, "text-anchor": "middle", "dominant-baseline": "middle", "letter-spacing": 4 }));
+      }
+      group.append(rect(x + 18, y + 18, width - 36, height - 36, { rx: 7, fill: "none", stroke: "rgba(255,255,255,.23)", "stroke-dasharray": "8 8" }));
+      return group;
+    }
+
+    function render() {
+      svg.replaceChildren();
+      svg.append(el("defs", {}, [
+        el("clipPath", { id: "portraitClip" }, [rect(148, 238, 384, 474, { rx: 10 })]),
+        el("linearGradient", { id: "cardFill", x1: "0", x2: "1", y1: "0", y2: "1" }, [
+          el("stop", { offset: "0%", "stop-color": "#152b3b" }),
+          el("stop", { offset: "48%", "stop-color": "#0c1722" }),
+          el("stop", { offset: "100%", "stop-color": "#101015" })
+        ]),
+        el("linearGradient", { id: "stripeFill", x1: "0", x2: "1" }, [
+          el("stop", { offset: "0%", "stop-color": "rgba(102,217,255,.5)" }),
+          el("stop", { offset: "100%", "stop-color": "rgba(216,189,120,.4)" })
+        ])
+      ]));
+
+      svg.append(rect(0, 0, 1600, 1000, { fill: "transparent" }));
+      for (let x = 0; x <= 1600; x += 50) svg.append(line(x, 0, x, 1000, { stroke: "rgba(102,217,255,.04)" }));
+      for (let y = 0; y <= 1000; y += 50) svg.append(line(0, y, 1600, y, { stroke: "rgba(102,217,255,.04)" }));
+
+      svg.append(rect(96, 108, 1408, 784, { rx: 28, fill: "url(#cardFill)", stroke: "rgba(143,207,237,.45)", "stroke-width": 2 }));
+      svg.append(rect(96, 108, 1408, 104, { rx: 28, fill: "rgba(3,8,14,.42)" }));
+      svg.append(rect(96, 204, 1408, 6, { fill: "url(#stripeFill)", opacity: .34 }));
+      svg.append(text(148, 154, value("agency").toUpperCase(), { fill: "#f4fbff", "font-size": 24, "font-weight": 950, "letter-spacing": 4 }));
+      svg.append(text(148, 188, "IDENTIFICATION CARD", { fill: "#66d9ff", "font-size": 13, "font-weight": 950, "letter-spacing": 5 }));
+      svg.append(text(1452, 184, "FHQ VERIFIED", { fill: "#d8bd78", "font-size": 21, "font-weight": 950, "letter-spacing": 3, "text-anchor": "end" }));
+
+      svg.append(portrait(148, 238, 384, 474));
+      svg.append(text(280, 766, "ID NO.", { fill: "#66d9ff", "font-size": 15, "font-weight": 950, "letter-spacing": 3.2, "text-anchor": "end" }));
+      svg.append(text(314, 766, value("serial").toUpperCase(), { fill: "#f5fbff", "font-size": 21, "font-weight": 950, "letter-spacing": 1.6 }));
+      svg.append(barcode(184, 798, 54, 2));
+
+      svg.append(text(610, 288, value("name").toUpperCase(), { fill: "#f8fbff", "font-size": 52, "font-weight": 950, "letter-spacing": 2 }));
+      svg.append(text(614, 336, value("codename").toUpperCase(), { fill: "#66d9ff", "font-size": 22, "font-weight": 950, "letter-spacing": 5 }));
+      svg.append(line(610, 366, 1186, 366, { stroke: "rgba(143,207,237,.28)" }));
+
+      svg.append(labelValue(614, 408, "classification", value("classType"), 262));
+      svg.append(labelValue(922, 408, "position / role", value("role"), 260));
+      svg.append(labelValue(614, 515, "division", value("division"), 262));
+      svg.append(labelValue(922, 515, "paired with", value("pairedWith"), 260));
+      svg.append(labelValue(614, 622, value("systemType"), value("systemDetail"), 570));
+
+      svg.append(rect(1254, 262, 198, 198, { rx: 8, fill: "rgba(245,251,255,.08)", stroke: "rgba(143,207,237,.24)" }));
+      svg.append(qr(1278, 286, 150));
+      svg.append(text(1353, 492, "SECURE TOKEN", { fill: "#66d9ff", "font-size": 14, "font-weight": 950, "letter-spacing": 3, "text-anchor": "middle" }));
+
+      svg.append(rect(1254, 530, 198, 92, { rx: 7, fill: "rgba(9,20,30,.84)", stroke: "rgba(216,189,120,.32)" }));
+      svg.append(text(1272, 564, "ISSUED", { fill: "#d8bd78", "font-size": 14, "font-weight": 950, "letter-spacing": 3 }));
+      svg.append(text(1272, 594, value("issued"), { fill: "#f5fbff", "font-size": 23, "font-weight": 900 }));
+      svg.append(rect(1254, 642, 198, 92, { rx: 7, fill: "rgba(9,20,30,.84)", stroke: "rgba(216,189,120,.32)" }));
+      svg.append(text(1272, 676, "EXPIRES", { fill: "#d8bd78", "font-size": 14, "font-weight": 950, "letter-spacing": 3 }));
+      svg.append(text(1272, 706, value("expires"), { fill: "#f5fbff", "font-size": 23, "font-weight": 900 }));
+
+      svg.append(metric(610, 756, "pairing", value("pairedWith"), "#d8bd78"));
+      svg.append(metric(814, 756, "sync", value("sync"), "#66d9ff"));
+      svg.append(metric(1018, 756, "stability", value("stability"), "#66d9ff"));
+
+      svg.append(text(1353, 782, value("signature"), { fill: "#f5fbff", "font-size": 24, "font-weight": 800, "font-style": "italic", "text-anchor": "middle" }));
+      svg.append(line(1256, 800, 1450, 800, { stroke: "rgba(245,251,255,.52)" }));
+      svg.append(text(1353, 826, "AUTHORIZED SIGNATURE", { fill: "#94a5b1", "font-size": 13, "font-weight": 950, "letter-spacing": 1.4, "text-anchor": "middle" }));
+    }
+
+    function serializeSvg() {
+      const clone = svg.cloneNode(true);
+      clone.setAttribute("xmlns", SVG_NS);
+      clone.setAttribute("xmlns:xlink", XLINK_NS);
+      return new XMLSerializer().serializeToString(clone);
+    }
+
+    function downloadBlob(filename, type, content) {
+      const blob = content instanceof Blob ? content : new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function downloadPng() {
+      const blob = new Blob([serializeSvg()], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = 3200;
+      canvas.height = 2000;
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#060910";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(output => downloadBlob(`${value("name") || "character-id"}.png`, "image/png", output), "image/png", 1);
+    }
+
+    function escapeHtml(content) {
+      return String(content).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function standaloneHtml() {
+      return `<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${escapeHtml(value("name") || "Character ID")}</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #060910; }
+    svg { display: block; width: min(100vw, 1600px); height: auto; }
+  </style>
+</head>
+<body>
+${serializeSvg()}
+</body>
+</html>`;
+    }
+
+    function readImage(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        state.portrait = reader.result;
+        render();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    form.addEventListener("input", render);
+    form.addEventListener("change", render);
+    document.querySelector("#portraitInput").addEventListener("change", event => readImage(event.target.files[0]));
+    document.querySelector("#pngBtn").addEventListener("click", downloadPng);
+    document.querySelector("#svgBtn").addEventListener("click", () => downloadBlob(`${value("name") || "character-id"}.svg`, "image/svg+xml", serializeSvg()));
+    document.querySelector("#htmlBtn").addEventListener("click", () => downloadBlob(`${value("name") || "character-id"}.html`, "text/html", standaloneHtml()));
+    document.querySelector("#resetBtn").addEventListener("click", () => {
+      Object.entries(defaults).forEach(([name, defaultValue]) => {
+        if (form.elements[name]) form.elements[name].value = defaultValue;
+      });
+      state.portrait = "";
+      document.querySelector("#portraitInput").value = "";
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
